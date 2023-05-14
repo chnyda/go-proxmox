@@ -34,7 +34,17 @@ func (v *VirtualMachine) Config(options ...VirtualMachineOption) (*Task, error) 
 	var upid UPID
 	data := make(map[string]interface{})
 	for _, opt := range options {
-		data[opt.Name] = opt.Value
+		if opt.Name == "sshkeys" {
+			if value, ok := opt.Value.(string); ok {
+				encoded := url.QueryEscape(value)
+				encoded = strings.Replace(encoded, "+", "%20", -1)
+				data[opt.Name] = encoded
+			} else {
+				return nil, fmt.Errorf("sshkeys value is not a string")
+			}
+		} else {
+			data[opt.Name] = opt.Value
+		}
 	}
 	err := v.client.Post(fmt.Sprintf("/nodes/%s/qemu/%d/config", v.Node, v.VMID), data, &upid)
 	return NewTask(upid, v.client), err
